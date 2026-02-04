@@ -23,7 +23,7 @@ To verify the application locally before cloud deployment, use Docker Compose. T
     docker-compose up --build
     ```
 3. **Access the app**: 
-    Open [http://localhost:3000](http://localhost:3000) in your browser. You should see the message: **"Hello from Express + TypeScript!"**.
+    Open [http://localhost:3000](http://localhost:3000) in your browser. You should see the message: **"TurboVets App is Live! Deployment Successful."**.
 
 > **Technical Note**: The application is configured to use **CommonJS** modules. This choice ensures stable execution with `ts-node` inside the Docker container, avoiding the experimental complexities of ES Modules (ESM) in a headless Linux environment.
 
