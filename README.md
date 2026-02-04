@@ -17,7 +17,7 @@ To verify the application locally before cloud deployment, use Docker Compose. T
 * Docker and Docker Compose installed.
 
 ### Steps to Run Locally
-1. **Navigate to the root directory** (where docker-compose.yml is located).
+1. **Navigate to the app directory** (where docker-compose.yml is located).
 2. **Start the container**:
     ```bash
     docker-compose up --build
