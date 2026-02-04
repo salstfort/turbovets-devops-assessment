@@ -1,0 +1,13 @@
+{
+  "language": "typescript",
+  "app": "npx ts-node main.ts",
+  "projectId": "debd6627-b00b-433c-89e5-7aed74479e77",
+  "name": "iac",
+  "description": "Infrastructure for Express App",
+  "sendCrashReports": "false",
+  "terraformProviders": [
+    "hashicorp/aws@~> 6.30"
+  ],
+  "terraformModules": [],
+  "context": {}
+}

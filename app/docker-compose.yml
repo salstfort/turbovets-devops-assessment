@@ -1,0 +1,22 @@
+# Docker Compose for local development environment
+services:
+  app:
+    # Build configuration to create the local container image
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    # Port Mapping: Standardizes accessibility at http://localhost:3000
+    ports:
+      - "3000:3000"
+    
+    # Volume Strategy for "Hot Reloading"
+    volumes:
+      # Bind Mount: Synchronizes local source code with the container. 
+      # This allows changes to .ts files to be reflected immediately without a rebuild.
+      - .:/usr/src/app
+      
+      # Anonymous Volume: Prevents the local 'node_modules' (if any) from overwriting 
+      # the container's internal 'node_modules' created during the build phase.
+      # This ensures the Linux-specific binaries installed in the image remain intact.
+      - /usr/src/app/node_modules

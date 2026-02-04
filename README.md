@@ -1,187 +1,90 @@
-# 🚀 DevOps Assessment – Full Lifecycle Challenge
+# 🚀 TurboVets DevOps Assessment
 
-**Estimated Time:** 4–8 hours
-**Level:** Intermediate
-**Focus Areas:** Dockerization · Infrastructure as Code · CI/CD · AWS
+This repository contains a production-ready, containerized Express.js application and the Infrastructure as Code (IaC) required to deploy it to AWS. The project demonstrates full-stack automation using TypeScript, Docker, and CDKTF.
 
----
+## 📁 Project Structure
 
-## 🧩 Overview
-
-You will be working from a pre-built Express.js + TypeScript starter application. Your task is to:
-
-1. Containerize the application and create a local dev environment
-2. Define a production-ready cloud deployment using CDK for Terraform
-3. Automate deployment via GitHub Actions
-
-You **may deploy to your own AWS account for testing**, but your solution must be **fully portable and documented** so we can deploy it into **our AWS environment**.
+* **`/app`**: Node.js Express application written in TypeScript, featuring a Dockerized environment and automated lifecycle management.
+* **`/iac`**: CDKTF configuration for provisioning a high-availability AWS infrastructure (VPC, ECS Fargate, ECR).
 
 ---
 
-## 🚀 Get Started
+## 🛠️ Local Development & Testing
 
-Fork or clone the starter repository:
+To verify the application locally before cloud deployment, use Docker Compose. This ensures environment parity between your local machine and the AWS Cloud.
 
-🔗 https://github.com/TurboVets/tv-devops-assessment
+### Prerequisites
+* Docker and Docker Compose installed.
 
-This contains the basic Express app you’ll be building on.
+### Steps to Run Locally
+1. **Navigate to the root directory** (where docker-compose.yml is located).
+2. **Start the container**:
+    ```bash
+    docker-compose up --build
+    ```
+3. **Access the app**: 
+    Open [http://localhost:3000](http://localhost:3000) in your browser. You should see the message: **"Hello from Express + TypeScript!"**.
 
----
-
-## 📦 Deliverables
-
-You must submit **one GitHub repository** with the following folder structure in the root:
-
-### 1. `app/`
-
-Contains the application code and:
-
-- `Dockerfile`
-- `docker-compose.yml`
-- GitHub Actions workflows
-- `README.md` with local setup and CI/CD instructions
-
-### 2. `iac/`
-
-Contains the infrastructure code and:
-
-- CDK for Terraform (in TypeScript)
-- Configuration templates
-- `README.md` with deployment instructions for our AWS account
+> **Technical Note**: The application is configured to use **CommonJS** modules. This choice ensures stable execution with `ts-node` inside the Docker container, avoiding the experimental complexities of ES Modules (ESM) in a headless Linux environment.
 
 ---
 
-## 🧪 Requirements
+## ⚙️ Technical Decisions & Enhancements
 
-### 🔧 Part 1: Docker Compose (Local Dev)
+To ensure the application runs reliably in a production cloud environment, the following enhancements were made to the provided codebase:
 
-- Create a production-optimized `Dockerfile` (multi-stage build, minimal layers, small image)
-- Create a `docker-compose.yml` to orchestrate the app
-- Add a `.dockerignore` to reduce build context size
-- App must respond to `http://localhost:3000/health`
+### 1. Cloud-Ready `server.ts`
+The `server.ts` entry point was updated to handle the unique constraints of a containerized environment:
+* **Network Interface Binding (`0.0.0.0`):** Modified the listener to bind to `0.0.0.0`. In AWS Fargate, binding to `localhost` (127.0.0.1) restricts traffic to the container's internal loopback, which would cause ECS health check failures.
+* **Graceful Shutdown Logic:** Implemented listeners for `SIGTERM` and `SIGINT` signals. This allows the server to finish processing "in-flight" requests before exiting during an AWS scaling event or deployment, preventing 502/504 gateway errors.
 
----
 
-### ☁️ Part 2: AWS Infrastructure with CDKTF
 
-Use **CDK for Terraform (TypeScript)** to define:
-
-- ECR repository
-- ECS service (Fargate or EC2)
-- VPC, subnets, security groups
-- IAM roles (least privilege)
-- (Optional) Load Balancer or API Gateway
-
-#### AWS Guidelines
-
-- You may deploy to your own AWS account for validation
-- **DO NOT hardcode account IDs, regions, or credentials**
-- All infrastructure must be configurable using:
-  - `cdktf.json`
-  - `.env` or config files
-  - Environment variables
-
-#### Documentation Required
-
-- Include **clear instructions** on how to:
-  - Override variables to use **our AWS account**
-  - Deploy and destroy the stack
-- The final deployment must produce a publicly accessible `/health` endpoint
+### 2. Infrastructure as Code (CDKTF)
+The infrastructure is fully automated using **CDKTF**, ensuring a repeatable and version-controlled environment.
+* **Least Privilege:** The ECS Execution Role is strictly scoped to allow ECR image pulling and CloudWatch log streaming.
+* **Security:** Security Groups are configured to allow inbound traffic strictly on **Port 3000**.
 
 ---
 
-### 🔁 Part 3: GitHub Actions CI/CD
+## ☁️ Infrastructure & Deployment
 
-Set up GitHub Actions to:
+The infrastructure is provisioned on AWS using **ECS Fargate**, providing a serverless experience that eliminates the need to manage EC2 instances.
 
-- Trigger on push to `main`
-- Build and tag a Docker image
-- Push to ECR
-- Deploy via `cdktf deploy`
 
-#### Workflow Requirements
 
-- Use GitHub Secrets to store:
-  - `AWS_ACCESS_KEY_ID`
-  - `AWS_SECRET_ACCESS_KEY`
-  - Any other required env vars
-- Parameterize everything (ECR URI, region, etc.)
-- Include instructions for configuring secrets
-- Add a CI badge to the `README.md`
+### Resources Provisioned:
+* **Networking**: Custom VPC (10.0.0.0/16) with a public subnet and an Internet Gateway.
+* **Compute**: ECS Cluster and Fargate Service managing the task lifecycle.
+* **Storage**: Amazon ECR Repository for secure Docker image management.
+* **Observability**: CloudWatch Log Group (`/ecs/turbovets-app`) for centralized application logs.
 
----
+### Deployment Workflow:
 
-## 🎥 Required: 2–5 Minute Walkthrough Video
+1. **Build and Push to ECR**:
+    ```bash
+    # 1. Authenticate Docker to AWS
+    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
 
-Record a screen-share video where you walk through:
+    # 2. Build the image
+    docker build -t turbovets-app ./app
 
-- Your Docker and Compose setup
-- CDKTF constructs and structure
-- GitHub Actions workflows
-- How we can configure and deploy it in our AWS account
-- Any challenges or decisions worth noting
+    # 3. Tag and Push
+    docker tag turbovets-app:latest <AWS_ACCOUNT_ID>[.dkr.ecr.us-east-1.amazonaws.com/turbovets-app-repo:latest](https://.dkr.ecr.us-east-1.amazonaws.com/turbovets-app-repo:latest)
+    docker push <AWS_ACCOUNT_ID>[.dkr.ecr.us-east-1.amazonaws.com/turbovets-app-repo:latest](https://.dkr.ecr.us-east-1.amazonaws.com/turbovets-app-repo:latest)
+    ```
 
-You do not need to appear on camera.
-
----
-
-## ✅ Evaluation Criteria
-
-| Area             | Expectation                                                              |
-|------------------|---------------------------------------------------------------------------|
-| **Docker Setup** | Clean, production-ready image; Compose works locally                     |
-| **IaC Quality**  | CDKTF code is modular, portable, and secure                              |
-| **CI/CD Flow**   | GitHub Actions runs cleanly; secrets handled properly                    |
-| **Portability**  | Can be deployed in our AWS account without code changes                  |
-| **Documentation**| Detailed, step-by-step usage and setup instructions                      |
-| **Security**     | No hardcoded secrets or account info; uses IAM and GitHub Secrets        |
-| **Communication**| Clear, concise walkthrough video explaining design and deployment        |
+2. **Provision Infrastructure**:
+    ```bash
+    cd iac
+    npm install
+    cdktf deploy --auto-approve
+    ```
 
 ---
 
-## 🧠 Bonus Points
-
-- Add Route53 and HTTPS
-- CloudWatch logs and alerts
-- Support multiple environments (dev/staging/prod)
-- Use remote Terraform backend (S3 + DynamoDB)
-
----
-
-## 📥 Submission Instructions
-
-Submit a single GitHub repository containing both `app/` and `iac/`.
-
-Then share:
-
-- ✅ GitHub repo link
-- ✅ Video walkthrough link (Loom, Google Drive, YouTube, etc.)
-- ✅ (Optional) Any extra notes or setup info we should know
-
----
-
-## 🔐 Grant GitHub Access
-
-Please add the following as **Admin Collaborators** to your GitHub repository:
-
-- `ana@turbovets.com`
-- `dean@turbovets.com`
-- `charishma@turbovets.com`
-
-### How to Add Admins
-
-1. Open your repo on GitHub
-2. Go to **Settings → Collaborators and teams**
-3. Click **Invite a collaborator**
-4. Enter the emails above
-5. Set access level to **Admin**
-
-
-## Important
-To keep your assessment properly logged and reviewed, submit your completed work through our official submission portal:
-https://forms.gle/1iJ2AHzMWsWecLUE6
-
-You have 4 business days from the moment you submit this form to complete and submit your assessment. Assessments sent after that window may not be reviewed.
-This portal ensures your work is tracked correctly and routed to the hiring team for evaluation."
-
-This gives us access to CI history, secrets, and workflow configurations for review.
+## 🛑 Teardown
+To avoid unnecessary AWS costs after the assessment review, run the following command to destroy all provisioned resources:
+```bash
+cd iac
+cdktf destroy --auto-approve
