@@ -1,15 +1,15 @@
 # Dependencies
-node_modules/
+**/node_modules/
 
 # Infrastructure/Terraform
-.terraform/
-terraform.tfstate*
+**/.terraform/
+**/*.tfstate*
 .gen/
-cdktf.out/
+**/cdktf.out/
 
 # Environment/Secrets
-.env
-setup.js
+**/.env
+**/setup.js
 *.pem
 
 # IDEs
